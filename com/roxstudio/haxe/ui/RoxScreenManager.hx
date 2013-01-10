@@ -1,6 +1,6 @@
 package com.roxstudio.haxe.ui;
 
-import com.roxstudio.haxe.game.ImageUtil;
+import com.roxstudio.haxe.game.ResKeeper;
 import nme.display.Bitmap;
 import nme.display.BitmapData;
 import nme.events.KeyboardEvent;
@@ -41,7 +41,7 @@ class RoxScreenManager extends Sprite {
         }
         var dest = screens.get(screenClassName);
         if (dest == null) {
-            ImageUtil.currentGroup = screenClassName;
+            ResKeeper.currentBundle = screenClassName;
             dest = Type.createInstance(Type.resolveClass(screenClassName), [ ]);
             dest.init(this, RoxApp.screenWidth, RoxApp.screenHeight);
             if (dest == null) throw "Unknown screenClassName: " + screenClassName;
@@ -51,7 +51,7 @@ class RoxScreenManager extends Sprite {
         if (animate == null) animate = RoxAnimate.SLIDE_LEFT;
         var request: Int = requestCode;
         stack.push({ className: screenClassName, requestCode: request, animate: animate });
-        ImageUtil.currentGroup = screenClassName;
+        ResKeeper.currentBundle = screenClassName;
         dest.onNewRequest(requestData);
         if (source != null) {
             switchScreen(source, dest, false);
@@ -136,7 +136,7 @@ class RoxScreenManager extends Sprite {
         if (finish && src.disposeAtFinish) {
             var classname = Type.getClassName(Type.getClass(src));
             screens.remove(classname);
-            ImageUtil.disposeGroup(classname);
+            ResKeeper.disposeBundle(classname);
             src.onDestroy();
         }
         addChild(dest);

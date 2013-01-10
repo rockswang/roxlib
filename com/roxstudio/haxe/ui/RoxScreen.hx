@@ -1,6 +1,6 @@
 package com.roxstudio.haxe.ui;
 
-import com.roxstudio.haxe.game.ImageUtil;
+import com.roxstudio.haxe.game.ResKeeper;
 import com.roxstudio.haxe.ui.RoxScreenManager;
 import nme.display.Sprite;
 

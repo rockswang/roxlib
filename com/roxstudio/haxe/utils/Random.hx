@@ -21,7 +21,7 @@ class Random {
 	private var seedInvalid: Bool;
 	
 	public function new() {
-		_seed = Std.random(2147483648);
+		_seed = Std.random(2147483647);
 		_pointer = 0;
 		bmpd = new BitmapData(1000, 200);
 		seedInvalid = true;

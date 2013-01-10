@@ -1,4 +1,4 @@
-package com.roxstudio.haxe.events;
+package com.roxstudio.haxe.gesture;
 
 import nme.events.Event;
 import nme.events.MouseEvent;

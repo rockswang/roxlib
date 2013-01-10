@@ -1,5 +1,7 @@
 package com.roxstudio.haxe.ui;
 
+import com.roxstudio.haxe.gesture.RoxGestureEvent;
+import com.roxstudio.haxe.gesture.RoxGestureAgent;
 import com.roxstudio.haxe.game.GameUtil;
 import com.roxstudio.haxe.ui.RoxNinePatchData;
 import com.roxstudio.haxe.ui.UiUtil;
@@ -37,7 +39,10 @@ class RoxFlowPane extends Sprite {
         addChild(this.bg);
         if (content != null) addChild(this.content);
         var hasListner = listener != null;
-        if (hasListner) addEventListener(MouseEvent.CLICK, listener);
+        if (hasListner) {
+            var agent = new RoxGestureAgent(this);
+            addEventListener(RoxGestureEvent.GESTURE_TAP, listener);
+        }
         mouseEnabled = hasListner;
         mouseChildren = !hasListner;
         set_anchor(anchor);

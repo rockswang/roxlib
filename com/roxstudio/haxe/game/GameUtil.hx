@@ -2,12 +2,9 @@ package com.roxstudio.haxe.game;
 
 import com.roxstudio.haxe.utils.Random;
 import nme.Assets;
-import nme.display.BitmapData;
-import nme.display.BitmapDataChannel;
 import nme.geom.Point;
 import nme.geom.Rectangle;
 import nme.media.Sound;
-import nme.utils.ByteArray;
 
 using StringTools;
 
@@ -224,39 +221,6 @@ class GameUtil {
 
     public static inline function loadSound(inSoundPath: String) : Sound {
         return Assets.getSound(inSoundPath);
-    }
-
-    public static function loadBitmapDataOld(inBitmapPath: String, ?inAlphaBitmapPath: String, ?inTransparentPixel: Point): BitmapData {
-        var bmp: BitmapData = Assets.getBitmapData(inBitmapPath);
-        var transparent = #if html5 true #else bmp.transparent #end ;
-        #if debug trace("bitmap loaded: path=" + inBitmapPath + ", width=" + bmp.width + ", height=" + bmp.height + ", transparent=" + transparent); #end
-
-        var doCopy = #if (neko || cpp) true #else inAlphaBitmapPath != null || inTransparentPixel != null #end;
-
-        var w = bmp.width, h = bmp.height, rect = new Rectangle(0, 0, w, h);
-        if (doCopy && !transparent) {
-            var transbmp = new BitmapData(w, h, true, #if neko { rgb: 0, a: 0 } #else 0 #end);
-            transbmp.copyPixels(bmp, rect, new Point(0, 0));
-            bmp = transbmp;
-        }
-
-        if (inAlphaBitmapPath != null) {
-            var alphabmp: BitmapData = Assets.getBitmapData(inAlphaBitmapPath);
-            #if debug trace("alphaBitmap loaded: path=" + inAlphaBitmapPath + ", width=" + alphabmp.width + ", height=" + alphabmp.height); #end
-            bmp.copyChannel(alphabmp, rect, new Point(0, 0), BitmapDataChannel.RED, BitmapDataChannel.ALPHA);
-        } else if (inTransparentPixel != null && pointInRectR(inTransparentPixel.x, inTransparentPixel.y, rect)) {
-            var rgb: Int = bmp.getPixel(Std.int(inTransparentPixel.x), Std.int(inTransparentPixel.y));
-            var buf: ByteArray = bmp.getPixels(rect);
-            buf.position = 0;
-            var newbuf: ByteArray = new ByteArray();
-            for (i in 0...(buf.length >> 2)) {
-                var color = buf.readInt();
-                newbuf.writeInt((color & 0x00FFFFFF) == rgb ? rgb : color);
-            }
-            newbuf.position = 0;
-            bmp.setPixels(rect, newbuf);
-        }
-        return bmp;
     }
 
 }

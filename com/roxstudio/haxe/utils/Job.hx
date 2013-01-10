@@ -10,5 +10,5 @@ interface Job {
 	public function jobRun() : Void;
 	
 	public function jobCompleted() : Void;
-	
+
 }

@@ -17,12 +17,12 @@ class SimpleJob<T> implements Job {
 		this._completed = inJobCompletedFunction;
 	}
 	
-	public function jobRun(inData: T) : Void {
+	public function jobRun() : Void {
 		this._run(data);
 	}
 	
-	public function jobCompleted(inData: T) Void {
-		this._completed(inData);
+	public function jobCompleted() : Void {
+		this._completed(data);
 	}
 	
 }

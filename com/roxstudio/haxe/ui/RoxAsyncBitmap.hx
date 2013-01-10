@@ -1,6 +1,8 @@
 package com.roxstudio.haxe.ui;
 
-import com.roxstudio.haxe.game.ImageUtil;
+import nme.events.Event;
+import com.roxstudio.haxe.net.RoxURLLoader;
+import com.roxstudio.haxe.game.ResKeeper;
 import nme.display.Bitmap;
 import nme.display.BitmapData;
 import nme.display.DisplayObject;
@@ -10,34 +12,34 @@ using com.roxstudio.haxe.ui.UiUtil;
 
 class RoxAsyncBitmap extends Sprite {
 
-    public var loader(default, null): RoxBitmapLoader;
+    public var loader(default, null): RoxURLLoader;
     public var loadingDisplay: DisplayObject;
     public var errorDisplay: DisplayObject;
 
     private var minWidth: Float = 0;
     private var minHeight: Float = 0;
 
-    public function new(url: String, ?minWidth: Float = 0, ?minHeight: Float = 0,
+    public function new(loader: RoxURLLoader, ?minWidth: Float = 0, ?minHeight: Float = 0,
                         ?loadingDisplay: DisplayObject, ?errorDisplay: DisplayObject) {
         super();
         this.minWidth = minWidth;
         this.minHeight = minHeight;
         this.loadingDisplay = loadingDisplay;
         this.errorDisplay = errorDisplay;
-        loader = ImageUtil.getBitmapLoader(url);
-        if (loader.status == RoxBitmapLoader.READY) {
-            loader.load(update);
+        this.loader = loader;
+        if (loader.status == RoxURLLoader.LOADING) {
+            loader.addEventListener(Event.COMPLETE, update);
         }
-        update();
+        update(null);
     }
 
-    private function update() {
+    private function update(_) {
         var dp: DisplayObject = switch (loader.status) {
-            case RoxBitmapLoader.OK:
-                new Bitmap(loader.bitmapData);
-            case RoxBitmapLoader.ERROR:
+            case RoxURLLoader.OK:
+                new Bitmap(cast(loader.data));
+            case RoxURLLoader.ERROR:
                 errorDisplay;
-            case RoxBitmapLoader.LOADING:
+            case RoxURLLoader.LOADING:
                 loadingDisplay;
         }
         if (numChildren > 0) removeChildAt(0);

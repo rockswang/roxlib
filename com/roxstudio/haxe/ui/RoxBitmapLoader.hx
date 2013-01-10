@@ -1,6 +1,6 @@
 package com.roxstudio.haxe.ui;
 
-import com.roxstudio.haxe.game.ImageUtil;
+import com.roxstudio.haxe.game.ResKeeper;
 import nme.display.Bitmap;
 import nme.display.BitmapData;
 import nme.display.DisplayObject;
@@ -35,7 +35,7 @@ class RoxBitmapLoader {
             loader = new URLLoader();
             loader.dataFormat = URLLoaderDataFormat.BINARY;
         } else { // asset
-            bitmapData = ImageUtil.loadBitmapData(url);
+            bitmapData = ResKeeper.loadAssetImage(url);
             status = OK;
             progress = 1.0;
         }

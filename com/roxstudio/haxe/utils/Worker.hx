@@ -12,7 +12,7 @@ import nme.events.Event;
 
 class Worker {
 	
-	private var jobs: List<Job>;
+	private var jobs: List<Job>; // completed jobs
 	private var lock: Mutex;
 	private var thread: Thread;
 

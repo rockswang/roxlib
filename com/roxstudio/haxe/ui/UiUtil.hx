@@ -1,7 +1,9 @@
 package com.roxstudio.haxe.ui;
 
+import com.roxstudio.haxe.net.RoxURLLoader;
+import com.roxstudio.haxe.game.ResKeeper;
 import com.roxstudio.haxe.game.GameUtil;
-import com.roxstudio.haxe.game.ImageUtil;
+import com.roxstudio.haxe.game.ResKeeper;
 import nme.display.Bitmap;
 import nme.display.BitmapData;
 import nme.display.DisplayObject;
@@ -77,14 +79,32 @@ class UiUtil {
 
     public static function bitmap(bmpPath: String, ?anchor: Int = TOP_LEFT, ?smooth: Bool = true) : Sprite {
         var sp = new Sprite(), bmp: Bitmap;
-        sp.addChild(bmp = new Bitmap(ImageUtil.getBitmapData(bmpPath)));
+        sp.addChild(bmp = new Bitmap(ResKeeper.getAssetImage(bmpPath)));
         bmp.smoothing = smooth;
         rox_anchor(sp, anchor);
         return sp;
     }
 
-    public inline static function ninePatch(ninePatchPath: String) : RoxNinePatch {
-        return new RoxNinePatch(ImageUtil.getNinePatchData(ninePatchPath));
+    public static function ninePatch(ninePatchPath: String) : RoxNinePatch {
+        var id = "9patch://" + ninePatchPath;
+        var npd: RoxNinePatchData = cast(ResKeeper.get(id));
+        if (npd == null) {
+            var bmd = ResKeeper.loadAssetImage(ninePatchPath);
+            ResKeeper.add(bmd);
+            npd = RoxNinePatchData.fromAndroidNinePng(bmd);
+            ResKeeper.add(id, npd);
+        }
+        return new RoxNinePatch(npd);
+    }
+
+    public static function asyncBitmap(url: String, ?minWidth: Float = 0, ?minHeight: Float = 0,
+                                      ?loadingDisplay: DisplayObject, ?errorDisplay: DisplayObject) : RoxAsyncBitmap {
+        var ldr: RoxURLLoader = cast(ResKeeper.get(url));
+        if (ldr == null) {
+            ldr = new RoxURLLoader(url, RoxURLLoader.IMAGE);
+            ResKeeper.add(url, ldr);
+        }
+        return new RoxAsyncBitmap(ldr, minWidth, minHeight, loadingDisplay, errorDisplay);
     }
 
     private static var defaultBg: RoxNinePatchData;
@@ -118,7 +138,7 @@ class UiUtil {
         }
         var bg = ninePatchPath != null ? ninePatch(ninePatchPath) : null;
         var children: Array<DisplayObject> = [];
-        if (iconPath != null) children.push(rox_smooth(new Bitmap(ImageUtil.getBitmapData(iconPath))));
+        if (iconPath != null) children.push(rox_smooth(new Bitmap(ResKeeper.getAssetImage(iconPath))));
         if (text != null) children.push(staticText(text, fontColor, fontSize));
 
         var sp = new RoxFlowPane(null, null, anchor, children, bg, childrenAlign, listener);
