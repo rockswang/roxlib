@@ -1,5 +1,7 @@
 package com.roxstudio.haxe.net;
 
+import nme.events.ErrorEvent;
+import org.bytearray.gif.decoder.GIFDecoder;
 import nme.display.Bitmap;
 import nme.display.BitmapData;
 import nme.display.Loader;
@@ -16,100 +18,84 @@ import nme.utils.ByteArray;
 /**
 * Currently support: String, ByteArray, BitmapData
 **/
-class RoxURLLoader extends EventDispatcher {
+class RoxURLLoader {
 
     public static inline var BINARY = 1;
     public static inline var TEXT = 2;
     public static inline var IMAGE = 3;
 
-
-    public static inline var OK = 0;
-    public static inline var LOADING = 1;
-    public static inline var ERROR = -1;
-
     public var url(default, null): String;
     public var type(default, null): Int;
-    public var status(default, null): Int = OK;
-    public var progress(default, null): Float;
-    public var bytesTotal(default, null): Float;
-    public var data(default, null): Dynamic;
+    public var started(default, null): Bool = false;
 
-    private var loader: URLLoader;
-
-    public function new(?url: String, ?type: Int = BINARY) {
-        super();
-        if (url != null) load(url, type);
-    }
-
-    public function load(url: String, ?type: Int = BINARY) {
-        if (status == LOADING) throw "Cannot load while previous task is not completed.";
+    public function new(url: String, type: Int = BINARY, onComplete: Bool -> Dynamic -> Void) {
         this.url = url;
         this.type = type;
-        status = LOADING;
-        data = null;
-        progress = bytesTotal = 0.0;
+        this.onComplete = onComplete;
+    }
+
+    public dynamic function onComplete(isOk: Bool, data: Dynamic) : Void {}
+
+    public dynamic function onRaw(rawData: ByteArray) : Void {}
+
+    public dynamic function onProgress(bytesLoaded: Float, bytesTotal: Float) : Void {}
+
+    public function start() {
+        if (started) return;
+        started = true;
         try {
-            loader = new URLLoader();
-            loader.dataFormat = type == TEXT ? URLLoaderDataFormat.TEXT : URLLoaderDataFormat.BINARY;
-            loader.load(new URLRequest(url));
-            loader.addEventListener(Event.COMPLETE, onComplete);
-            loader.addEventListener(ProgressEvent.PROGRESS, onProgress);
-            loader.addEventListener(IOErrorEvent.IO_ERROR, onError);
+            var loader = new URLLoader();
+            loader.dataFormat = URLLoaderDataFormat.BINARY;
+            loader.addEventListener(Event.COMPLETE, onDone);
+            if (onProgress != null) {
+                loader.addEventListener(ProgressEvent.PROGRESS, function(e: ProgressEvent) {
+                    onProgress(e.bytesLoaded, e.bytesTotal);
+                });
+            }
+            loader.addEventListener(IOErrorEvent.IO_ERROR, function(e: Event) {
+                onComplete(false, new Error(IOErrorEvent.IO_ERROR));
+            });
 #if !html5
-            loader.addEventListener(nme.events.SecurityErrorEvent.SECURITY_ERROR, onError);
+            loader.addEventListener(nme.events.SecurityErrorEvent.SECURITY_ERROR, function(e: Event) {
+                onComplete(false, new Error(nme.events.SecurityErrorEvent.SECURITY_ERROR));
+            });
 #end
+            loader.load(new URLRequest(url));
         } catch (e: Dynamic) {
-            trace("url=" + url + ",error="+e);
-            onError(null);
+            haxe.Timer.delay(function() { onComplete(false, e); }, 0);
         }
     }
 
-    private inline function onComplete(_) {
-        status = OK;
+    private function onDone(e: Dynamic) {
+        var ba: ByteArray = cast e.target.data;
+        if (onRaw != null) onRaw(ba);
         switch (type) {
             case IMAGE:
-                var ldr = new Loader();
-                ldr.loadBytes(cast(loader.data));
-                var imageDone = function(_) {
-                    data = cast(ldr.content, Bitmap).bitmapData;
-                    loader = null;
-                    dispatchEvent(new Event(Event.COMPLETE));
+                var iscpp = #if cpp true #else false #end;
+                if (iscpp && ba[0] == 'G'.code && ba[1] == 'I'.code && ba[2] == 'F'.code) {
+                    var gifdec = new GIFDecoder();
+                    gifdec.read(ba);
+                    var bmd = gifdec.getFrameCount() > 0 ? gifdec.getImage().bitmapData : new BitmapData(0, 0);
+                    onComplete(true, bmd);
+                } else { // not a gif image or it's on flash target
+                    var ldr = new Loader();
+                    var imageDone = function(_) {
+                        var bmd = cast(ldr.content, Bitmap).bitmapData;
+                        onComplete(true, bmd);
+                    }
+                    ldr.loadBytes(ba);
+                    if (ldr.content != null) {
+                        imageDone(null);
+                    } else {
+                        var ldri = ldr.contentLoaderInfo;
+                        ldri.addEventListener(Event.COMPLETE, imageDone);
+                    }
                 }
-                if (ldr.content != null) {
-                    imageDone(null);
-                } else {
-                    var ldri = ldr.contentLoaderInfo;
-                    ldri.addEventListener(Event.COMPLETE, imageDone);
-                }
-                return;
-            default: // TEXT & BINARY
-                data = loader.data;
+            case TEXT:
+                onComplete(true, ba.toString());
+            case BINARY:
+                onComplete(true, ba);
         }
-        loader = null;
-        dispatchEvent(new Event(Event.COMPLETE));
-    }
-
-    private inline function onError(e: Dynamic) {
-        trace("url=" + url + ",error=!" + e);
-        status = ERROR;
-        loader = null;
-        dispatchEvent(new Event(Event.COMPLETE));
-    }
-
-    private inline function onProgress(e: ProgressEvent) {
-        status = LOADING;
-        bytesTotal = e.bytesTotal;
-        progress = e.bytesLoaded / bytesTotal;
-    }
-
-    public function dispose() {
-        url = null;
-        status = OK;
-        if (data != null) {
-            if (type == IMAGE) cast(data, BitmapData).dispose();
-            data = null;
-        }
-        loader = null;
     }
 
 }

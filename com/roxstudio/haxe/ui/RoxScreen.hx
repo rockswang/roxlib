@@ -1,8 +1,14 @@
 package com.roxstudio.haxe.ui;
 
 import com.roxstudio.haxe.game.ResKeeper;
-import com.roxstudio.haxe.ui.RoxScreenManager;
 import nme.display.Sprite;
+
+enum FinishToScreen {
+    PARENT;
+    ROOT;
+    CLEAR;
+    SCREEN(name: String);
+}
 
 class RoxScreen extends Sprite {
 
@@ -12,6 +18,7 @@ class RoxScreen extends Sprite {
     public var manager(default, null): RoxScreenManager;
     public var screenWidth(default, null): Float;
     public var screenHeight(default, null): Float;
+    public var className(get_className, null): String;
     public var disposeAtFinish: Bool = true;
 
     public function new() {
@@ -22,6 +29,10 @@ class RoxScreen extends Sprite {
         this.manager = inManager;
         this.screenWidth = inWidth;
         this.screenHeight = inHeight;
+    }
+
+    public inline function get_className() : String {
+        return Type.getClassName(Type.getClass(this));
     }
 
     public function onCreate() {
@@ -55,17 +66,18 @@ class RoxScreen extends Sprite {
         return true;
     }
 
-    public function startScreen(screenClassName: String, ?finishThis: Bool = false, ?animate: RoxAnimate,
-                                ?requestCode: Null<Int> = 1, ?requestData: Dynamic) {
-//        trace(Type.getClassName(Type.getClass(this)) + ".startScreen: className=" + screenClassName
-//                + ",requestCode=" + requestCode + ",requestData=" + requestData + ",animate=" + animate);
-        manager.startScreen(this, screenClassName, finishThis, requestCode, requestData, animate);
+    public function startScreen(screenClassName: String, ?finishToScreen: FinishToScreen, ?animate: RoxAnimate,
+                                ?requestCode: Int = 1, ?requestData: Dynamic) {
+        manager.startScreen(this, screenClassName, finishToScreen, requestCode, requestData, animate);
     }
 
-    public function finish(?toScreenClassName: String, ?animate: RoxAnimate, resultCode: Int, ?resultData: Dynamic) {
-//        trace(Type.getClassName(Type.getClass(this)) + ".finish: resultCode=" + resultCode
-//                + ",resultData=" + resultData + ",animate=" + animate);
-        manager.finishScreen(this, toScreenClassName, resultCode, resultData, animate);
+    public function finish(?finishToScreen: FinishToScreen, ?animate: RoxAnimate,
+                           resultCode: Int, ?resultData: Dynamic) {
+        manager.finishScreen(this, finishToScreen, resultCode, resultData, animate);
+    }
+
+    override public inline function toString() : String {
+        return get_className();
     }
 
 }

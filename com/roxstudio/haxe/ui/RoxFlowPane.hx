@@ -15,6 +15,7 @@ using com.roxstudio.haxe.ui.UiUtil;
 class RoxFlowPane extends Sprite {
 
     public var anchor(default, set_anchor): Int;
+    public var length(default, null): Int;
 
     private static inline var DEFAULT_GAP = 4.0;
 
@@ -26,6 +27,7 @@ class RoxFlowPane extends Sprite {
                         ?childrenAlign: Int = UiUtil.VCENTER, ?gaps: Array<Float>,
                         ?listener: Dynamic -> Void) {
         super();
+        length = children.length;
         content = switch (children.length) {
             case 0: null;
             case 1: children[0];
@@ -41,12 +43,21 @@ class RoxFlowPane extends Sprite {
         var hasListner = listener != null;
         if (hasListner) {
             var agent = new RoxGestureAgent(this);
+            agent.swipeTimeout = 0;
             addEventListener(RoxGestureEvent.GESTURE_TAP, listener);
         }
         mouseEnabled = hasListner;
         mouseChildren = !hasListner;
         set_anchor(anchor);
 //        trace("w="+this.width+",h="+this.height+",cont_grid=" + bg.contentGrid.rox_rectStr() + ",content="+content.rox_dimension().rox_rectStr());
+    }
+
+    public inline function childAt(idx: Int) : DisplayObject {
+        return switch (length) {
+            case 0: null;
+            case 1: content;
+            default: cast(content, Sprite).getChildAt(idx);
+        }
     }
 
     private function set_anchor(a: Int) : Int {

@@ -6,15 +6,17 @@ using com.roxstudio.haxe.ui.UiUtil;
 
 class RoxAnimate {
 
-    public static inline var DEFAULT_INTERVAL = 0.4;
-    public static inline var SLIDE_LEFT = new RoxAnimate(SLIDE, "left");
-    public static inline var SLIDE_RIGHT = new RoxAnimate(SLIDE, "right");
-
     public static inline var NONE = 0; // no animate
     public static inline var SLIDE = 1; // arg: String = "up"/"right"/"down"/"left"
     public static inline var ZOOM_IN = 2; // popup, arg: Rectangle
     public static inline var ZOOM_OUT = 3; // shrink, arg: Rectangle
     public static inline var FADE = 4;
+
+    public static var SLIDE_LEFT = new RoxAnimate(SLIDE, "left");
+    public static var SLIDE_RIGHT = new RoxAnimate(SLIDE, "right");
+    public static var NO_ANIMATE = new RoxAnimate(NONE, null);
+
+    public static inline var DEFAULT_INTERVAL = 0.4;
 
     public var type(default, null): Int;
     public var interval(default, null): Float;
@@ -27,9 +29,9 @@ class RoxAnimate {
     }
 
     public function getReverse() : RoxAnimate {
-        var anim = switch (type) {
+        return switch (type) {
             case SLIDE:
-                var newarg = switch (cast(arg, String)) { case "up": "down"; case "down": "up"; case "left": "right"; case "right": "left"; }
+                var newarg = switch (cast(arg, String)) { case "up": "down"; case "down": "up"; case "left": "right"; case "right": "left"; case _: ""; }
                 new RoxAnimate(SLIDE, newarg, interval);
             case ZOOM_IN:
                 new RoxAnimate(ZOOM_OUT, arg, interval);
@@ -37,11 +39,9 @@ class RoxAnimate {
                 new RoxAnimate(ZOOM_IN, arg, interval);
             case FADE:
                 new RoxAnimate(ZOOM_IN, arg, interval); // TODO
-            default:
-                null;
+            #if haxe3 case _ #else default #end:
+                this;
         }
-//        trace("reverseAnim:this.type="+type+",return=" + anim);
-        return anim;
     }
 
     public function toString() : String {

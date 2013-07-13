@@ -1,6 +1,5 @@
 package com.roxstudio.haxe.utils;
 
-#if cpp
 import cpp.vm.Mutex;
 import cpp.vm.Thread;
 import nme.events.Event;
@@ -50,8 +49,3 @@ class Worker {
 	}
 	
 }
-#else
-
-class Worker {}
-
-#end

@@ -31,17 +31,19 @@ class RoxGestureEvent extends Event {
     public var stageX(default, null): Float;
     public var stageY(default, null): Float;
     public var touchPointID(default, null): Int;
+    public var agent(default, null): RoxGestureAgent;
     public var extra(default, null): Dynamic;
 
     public function new(type: String, ?bubbles: Null<Bool> = true, cancelable: Null<Bool> = false,
                         inLocalX: Float, inLocalY: Float, inStageX: Float, inStageY: Float,
-                        ?inTouchPointId: Null<Int> = 0, ?inExtra: Dynamic) {
+                        ?inTouchPointId: Null<Int> = 0, inAgent: RoxGestureAgent, ?inExtra: Dynamic) {
         super(type, bubbles, cancelable);
         localX = inLocalX;
         localY = inLocalY;
         stageX = inStageX;
         stageY = inStageY;
         touchPointID = inTouchPointId;
+        agent = inAgent;
         extra = inExtra;
     }
 

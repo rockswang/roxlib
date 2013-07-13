@@ -1,28 +1,43 @@
 package com.roxstudio.haxe.game;
 
+import haxe.io.BytesOutput;
+import haxe.io.Bytes;
+import nme.display.BitmapData;
 import com.roxstudio.haxe.utils.Random;
 import nme.Assets;
 import nme.geom.Point;
 import nme.geom.Rectangle;
 import nme.media.Sound;
 
+#if cpp
+import com.roxstudio.haxe.utils.Worker;
+#end
+
 using StringTools;
+using com.roxstudio.haxe.io.IOUtil;
 
 /**
  * ...
  * @author Rocks Wang
  */
 
+#if haxe3
+
+private typedef Hash<T> = Map<String, T>;
+private typedef IntHash<T> = Map<Int, T>;
+
+#end
+
 class GameUtil {
 
-    public static inline var PId2 = Math.PI / 2;
-    public static inline var PI = Math.PI;
-    public static inline var PI3d2 = Math.PI * 3 / 2;
-    public static inline var PIm2 = Math.PI * 2;
-    public static inline var R2D = 180 / Math.PI;
-    public static inline var D2R = Math.PI / 180;
-    public static inline var IMAX = 2147483647;
-    public static inline var IMIN = -2147483648;
+    public static var PId2 = Math.PI / 2;
+    public static var PI = Math.PI;
+    public static var PI3d2 = Math.PI * 3 / 2;
+    public static var PIm2 = Math.PI * 2;
+    public static var R2D = 180 / Math.PI;
+    public static var D2R = Math.PI / 180;
+    public static var IMAX = 2147483647;
+    public static var IMIN = -2147483648;
 
     public static var max: Dynamic;
     public static var min: Dynamic;
@@ -219,8 +234,31 @@ class GameUtil {
         return hasharr;
     }
 
-    public static inline function loadSound(inSoundPath: String) : Sound {
-        return Assets.getSound(inSoundPath);
+#if cpp
+    public static var worker(get_worker, null): Worker;
+
+    private static inline function get_worker() : Worker {
+        if (worker == null) {
+            worker = new Worker();
+        }
+        return worker;
+    }
+#end
+
+    public static function encodePng(img: BitmapData) : Bytes {
+        var bb = img.getPixels(new Rectangle(0, 0, img.width, img.height));
+        var output = new BytesOutput();
+        var w = new format.png.Writer(output);
+        w.write(format.png.Tools.build32ARGB(img.width, img.height, bb.rox_toBytes()));
+        return output.getBytes();
+    }
+
+    public static function encodeJpeg(img: BitmapData) : Bytes {
+        var bb = img.getPixels(new Rectangle(0, 0, img.width, img.height));
+        var output = new BytesOutput();
+        var w = new format.jpg.Writer(output);
+        w.write({ width: img.width, height: img.height, quality: 80, pixels: bb.rox_toBytes() });
+        return output.getBytes();
     }
 
 }

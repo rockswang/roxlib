@@ -1,5 +1,13 @@
 package com.roxstudio.haxe.ui;
 
+import nme.events.MouseEvent;
+import nme.display.InteractiveObject;
+import nme.events.EventDispatcher;
+import nme.events.Event;
+import nme.Lib;
+import com.roxstudio.haxe.game.GfxUtil;
+import haxe.Timer;
+import nme.text.TextFieldType;
 import com.roxstudio.haxe.net.RoxURLLoader;
 import com.roxstudio.haxe.game.ResKeeper;
 import com.roxstudio.haxe.game.GameUtil;
@@ -18,6 +26,13 @@ import nme.text.TextField;
 import nme.text.TextFormat;
 import nme.text.TextFormatAlign;
 import nme.utils.ByteArray;
+
+#if haxe3
+
+typedef Hash<T> = Map<String, T>;
+typedef IntHash<T> = Map<Int, T>;
+
+#end
 
 class UiUtil {
 
@@ -47,31 +62,59 @@ class UiUtil {
         var format = new TextFormat();
 #if android
         format.font = new nme.text.Font("/system/fonts/DroidSansFallback.ttf").fontName;
+#else
+        format.font = "Microsoft YaHei";
 #end
         format.color = color;
         format.size = Std.int(size);
         format.align = switch (hAlign & 0x0F) {
-            case LEFT: TextFormatAlign.LEFT; case HCENTER: TextFormatAlign.CENTER;
-            case RIGHT: TextFormatAlign.RIGHT; case JUSTIFY: TextFormatAlign.JUSTIFY; };
+            case HCENTER: TextFormatAlign.CENTER;
+            case RIGHT: TextFormatAlign.RIGHT;
+            case JUSTIFY: TextFormatAlign.JUSTIFY;
+            #if haxe3 case _ #else default #end: TextFormatAlign.LEFT;
+        };
         return format;
     }
 
     private static var textfieldCanvas: BitmapData;
     public static function staticText(text: String, ?color: Int = 0, ?size: Float = 24, ?hAlign: Int = LEFT,
-                                      ?multiline: Bool = false, ?width: Null<Float>) : TextField {
+                                      ?multiline: Bool = false, ?width: Null<Float>, ?height: Null<Float>) : TextField {
         if (textfieldCanvas == null) textfieldCanvas = new BitmapData(100, 100);
         var tf = new TextField();
         var ox = tf.x, oy = tf.y;
         tf.selectable = false;
         tf.mouseEnabled = false;
-        tf.defaultTextFormat = textFormat(color, size, hAlign);
+        tf.defaultTextFormat = textFormat(color & 0x00FFFFFF, size, hAlign);
         tf.multiline = tf.wordWrap = multiline;
         if (width != null) tf.width = width;
+        if (height != null) tf.height = height;
         tf.x = tf.y = 0;
         tf.text = text;
         textfieldCanvas.draw(tf); // force textfield to update width & height
         if (width == null) tf.width = tf.textWidth + 5;
-        tf.height = tf.textHeight + 5;
+        if (height == null) tf.height = tf.textHeight + 5;
+        tf.x = ox;
+        tf.y = oy;
+        return tf;
+    }
+
+    public static function input(?text: String = "", ?color: Int = 0, ?size: Float = 24, ?hAlign: Int = LEFT,
+                                      ?multiline: Bool = false, ?width: Null<Float>, ?height: Null<Float>) : TextField {
+        if (textfieldCanvas == null) textfieldCanvas = new BitmapData(100, 100);
+        var tf = new TextField();
+        var ox = tf.x, oy = tf.y;
+        tf.selectable = true;
+        tf.mouseEnabled = true;
+        tf.type = TextFieldType.INPUT;
+        tf.defaultTextFormat = textFormat(color, size, hAlign);
+        tf.multiline = tf.wordWrap = multiline;
+        if (width != null) tf.width = width;
+        if (height != null) tf.height = height;
+        tf.x = tf.y = 0;
+        tf.text = text;
+        textfieldCanvas.draw(tf); // force textfield to update width & height
+        if (width == null) tf.width = tf.textWidth + 5;
+        if (height == null) tf.height = tf.textHeight + 5;
         tf.x = ox;
         tf.y = oy;
         return tf;
@@ -97,14 +140,25 @@ class UiUtil {
         return new RoxNinePatch(npd);
     }
 
-    public static function asyncBitmap(url: String, ?minWidth: Float = 0, ?minHeight: Float = 0,
-                                      ?loadingDisplay: DisplayObject, ?errorDisplay: DisplayObject) : RoxAsyncBitmap {
-        var ldr: RoxURLLoader = cast(ResKeeper.get(url));
-        if (ldr == null) {
-            ldr = new RoxURLLoader(url, RoxURLLoader.IMAGE);
-            ResKeeper.add(url, ldr);
+    public static function asyncImage(url: String, onComplete: BitmapData -> Void,
+                                      ?onRaw: ByteArray -> Void, ?onProgress: Float -> Float -> Void,
+                                      ?bundleId: String) {
+        var img = ResKeeper.get(url);
+        if (img == null) {
+            var ldr = new RoxURLLoader(url, RoxURLLoader.IMAGE, function(isOk: Bool, data: Dynamic) {
+                if (isOk) {
+                    onComplete(cast data);
+                    ResKeeper.add(url, data, bundleId);
+                } else {
+                    onComplete(null);
+                }
+            });
+            ldr.onRaw = onRaw;
+            ldr.onProgress = onProgress;
+            ldr.start();
+        } else { // already in cache
+            delay(function() { onComplete(cast img); });
         }
-        return new RoxAsyncBitmap(ldr, minWidth, minHeight, loadingDisplay, errorDisplay);
     }
 
     private static var defaultBg: RoxNinePatchData;
@@ -138,11 +192,31 @@ class UiUtil {
         }
         var bg = ninePatchPath != null ? ninePatch(ninePatchPath) : null;
         var children: Array<DisplayObject> = [];
-        if (iconPath != null) children.push(rox_smooth(new Bitmap(ResKeeper.getAssetImage(iconPath))));
-        if (text != null) children.push(staticText(text, fontColor, fontSize));
+        if (iconPath != null) {
+            var iconsp = UiUtil.bitmap(iconPath);
+            children.push(iconsp);
+        }
+        if (text != null) {
+            var texttf = staticText(text, fontColor, fontSize);
+            children.push(texttf);
+        }
 
         var sp = new RoxFlowPane(null, null, anchor, children, bg, childrenAlign, listener);
         sp.name = name;
+        return sp;
+    }
+
+    public static function switchControl(on: Bool) : Sprite {
+        var d2rscale = RoxApp.screenWidth / 640;
+        var sp = new Sprite();
+        GfxUtil.rox_fillRect(sp.graphics, 0x33333333, 0, 0, 100 * d2rscale, 40 * d2rscale);
+        var txt = UiUtil.staticText(on ? "ON" : "OFF", 0xFFFFFF, 26 * d2rscale);
+        if (on) {
+            GfxUtil.rox_fillRoundRect(sp.graphics, 0xFF0000FF, 50 * d2rscale, 0, 50 * d2rscale, 40 * d2rscale, 8);
+        } else {
+            GfxUtil.rox_fillRoundRect(sp.graphics, 0xFF555555, 0, 0, 50 * d2rscale, 40 * d2rscale, 8);
+        }
+        sp.addChild(UiUtil.rox_move(txt, (on ? 50 * d2rscale : 0) + (50 * d2rscale - txt.width) / 2, (40 * d2rscale - txt.height) / 2));
         return sp;
     }
 
@@ -190,35 +264,58 @@ class UiUtil {
     }
 
     public static inline function rox_stopPropagation(event: Dynamic, ?immediate: Null<Bool> = false) {
-#if cpp
-        Reflect.setField(event, "nmeIsCancelled", true);
-        if (immediate) Reflect.setField(event, "nmeIsCancelledNow", true);
-
-#else
+//#if cpp
+//        Reflect.setField(event, "nmeIsCancelled", true);
+//        if (immediate) Reflect.setField(event, "nmeIsCancelledNow", true);
+//
+//#else
         event.stopPropagation();
         if (immediate) event.stopImmediatePropagation();
-#end
+//#end
     }
 
-    public static inline function rox_removeAll(dpc: DisplayObjectContainer) {
+    public static inline function rox_removeAll(dpc: DisplayObjectContainer) : DisplayObjectContainer {
         var count = dpc.numChildren;
         for (i in 0...count) {
             dpc.removeChildAt(count - i - 1);
         }
+        return dpc;
+    }
+
+    public static inline function rox_remove(dpc: DisplayObjectContainer, dp: DisplayObject) : DisplayObjectContainer {
+        if (dp != null && dpc.contains(dp)) dpc.removeChild(dp);
+        return dpc;
+    }
+
+    public static inline function rox_removeByName(dpc: DisplayObjectContainer, name: String) : DisplayObjectContainer {
+        var dp = dpc.getChildByName(name);
+        if (dp != null) dpc.removeChild(dp);
+        return dpc;
+    }
+    public static inline function rox_onClick(sp: InteractiveObject, listener: Dynamic -> Void) : InteractiveObject {
+        sp.mouseEnabled = true;
+        sp.addEventListener(MouseEvent.CLICK, listener);
+        return sp;
     }
 
     public static inline function rangeValue<T: Float>(v: T, min: T, max: T) : T {
         return v < min ? min : v > max ? max : v;
     }
 
-    public static inline function byteArray(?length: Null<Int>) : ByteArray {
-#if (flash || html5)
-        var bb = new ByteArray();
-        if (length != null) bb.length = length;
-        return bb;
-#else
-        return length != null ? new ByteArray(length) : new ByteArray();
-#end
+    public static function delay(task: Void -> Void, ?timeInSec: Float = 0) {
+        Timer.delay(task, Std.int(timeInSec * 1000));
+    }
+
+    public static function message(text: String, ?timeInSec: Float = 2.0) {
+        var stage = Lib.current.stage;
+        var ratio = stage.stageWidth / 640;
+        var label = UiUtil.staticText(text, 0xFFFFFF, 24 * ratio);
+        var box = new Sprite();
+        GfxUtil.rox_fillRoundRect(box.graphics, 0xBB333333, 0, 0, label.width + 20, label.height + 16);
+        box.addChild(UiUtil.rox_move(label, (box.width - label.width) / 2, (box.height - label.height) / 2));
+        stage.addChild(UiUtil.rox_move(box, (stage.stageWidth - box.width) / 2, stage.stageHeight - box.height - 100 * ratio));
+        delay(function() { stage.removeChild(box); }, timeInSec);
     }
 
 }
+

@@ -73,7 +73,7 @@ class RoxNinePatchData {
     }
 
     public function dispose() {
-        trace(">>>>disposing 9 patch.");
+//        trace(">>>>disposing 9 patch.");
         ninePatchGrid = null;
         contentGrid = null;
 #if !html5
