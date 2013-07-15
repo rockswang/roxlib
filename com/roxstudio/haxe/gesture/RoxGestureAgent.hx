@@ -6,7 +6,6 @@ import nme.display.DisplayObjectContainer;
 import motion.actuators.GenericActuator;
 import motion.Actuate;
 import com.roxstudio.haxe.gesture.RoxGestureEvent;
-import com.roxstudio.haxe.game.GameUtil;
 import haxe.Timer;
 import nme.Lib;
 import nme.display.InteractiveObject;
@@ -17,9 +16,9 @@ import nme.geom.Point;
 import nme.geom.Rectangle;
 import nme.ui.Multitouch;
 
-using Lambda;
-using com.roxstudio.haxe.game.GfxUtil;
-using com.roxstudio.haxe.ui.UiUtil;
+#if haxe3
+private typedef Hash<T> = Map<String, T>;
+#end
 
 class RoxGestureAgent {
 
@@ -40,6 +39,7 @@ class RoxGestureAgent {
     private static inline var BEGIN = 1;
     private static inline var TWO_FINGER_MOVE = 2;
     private static inline var MOVE = 4;
+    private static var R2D = 180 / Math.PI;
 
 //    private static inline var DOUBLE_TAP_DELAY = 0.3;
     private static inline var SWIPE_SCROLL_TIME = 2.0;
@@ -167,7 +167,7 @@ class RoxGestureAgent {
                 var newpos = Point.polar(length, newang);
                 newpos.offset(e.stageX, e.stageY);
                 newpos = sp.parent.globalToLocal(newpos);
-                sp.rotation += GameUtil.R2D * angle;
+                sp.rotation += R2D * angle;
                 sp.x = newpos.x;
                 sp.y = newpos.y;
         }
@@ -208,7 +208,8 @@ class RoxGestureAgent {
 //        trace("onMouse:e=" + e);
         var t: String = e.type;
         if (t == MouseEvent.MOUSE_DOWN || t == MouseEvent.MOUSE_UP || e.buttonDown) {
-            if (handleTouch(typeMap.get(t), e, true, 0)) e.rox_stopPropagation();
+//            if (handleTouch(typeMap.get(t), e, true, 0)) e.rox_stopPropagation();
+            handleTouch(typeMap.get(t), e, true, 0);
         }
     }
 
@@ -230,7 +231,8 @@ class RoxGestureAgent {
                     if (overlay == null) {
                         overlay = new Sprite();
                         overlay.name = "overlay";
-                        overlay.graphics.rox_fillRect(0x01FFFFFF, 0, 0, stage.stageWidth, stage.stageHeight);
+                        overlay.graphics.beginFill(0xFFFFFF, 1 / 255);
+                        overlay.graphics.drawRect(0, 0, stage.stageWidth, stage.stageHeight);
                     }
                     stage.addChild(overlay);
                     for (type in listenEvents) overlay.addEventListener(type, handler);
