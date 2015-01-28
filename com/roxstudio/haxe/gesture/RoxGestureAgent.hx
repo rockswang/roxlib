@@ -1,20 +1,20 @@
 package com.roxstudio.haxe.gesture;
 
-import nme.ui.MultitouchInputMode;
-import nme.display.Sprite;
-import nme.display.DisplayObjectContainer;
+import openfl.ui.MultitouchInputMode;
+import openfl.display.Sprite;
+import openfl.display.DisplayObjectContainer;
 import motion.actuators.GenericActuator;
 import motion.Actuate;
 import com.roxstudio.haxe.gesture.RoxGestureEvent;
 import haxe.Timer;
-import nme.Lib;
-import nme.display.InteractiveObject;
-import nme.events.Event;
-import nme.events.MouseEvent;
-import nme.events.TouchEvent;
-import nme.geom.Point;
-import nme.geom.Rectangle;
-import nme.ui.Multitouch;
+import openfl.Lib;
+import openfl.display.InteractiveObject;
+import openfl.events.Event;
+import openfl.events.MouseEvent;
+import openfl.events.TouchEvent;
+import openfl.geom.Point;
+import openfl.geom.Rectangle;
+import openfl.ui.Multitouch;
 
 #if haxe3
 private typedef Hash<T> = Map<String, T>;
@@ -65,8 +65,8 @@ class RoxGestureAgent {
     private var touchList: List<TouchPoint>;
     private var listenEvents: Array<String>;
     private var handler: Dynamic -> Void;
-    private var longPressTimer: GenericActuator;
-    private var tweener: GenericActuator;
+    private var longPressTimer: GenericActuator<Dynamic>;
+    private var tweener: GenericActuator<Dynamic>;
     private var overlay: Sprite; // used in capture mode, to capture events outside the owner
     /**
      * READY -> begin:BEGIN -> end:tap
@@ -118,7 +118,8 @@ class RoxGestureAgent {
 
     public inline function stopTween() {
         if (tweener != null) {
-            tweener.stop(null, false, false);
+            Actuate.stop(tweener, null, false, false);
+            //tweener.stop(null, false, false);
             tweener = null;
         }
     }
@@ -333,7 +334,8 @@ class RoxGestureAgent {
 
     private inline function cancelLongPress() {
         if (longPressTimer != null) {
-            longPressTimer.stop(null, false, false);
+            Actuate.stop(longPressTimer, null, false, false);
+            //longPressTimer.stop(null, false, false);
             longPressTimer = null;
         }
     }
