@@ -10,6 +10,10 @@ Currently contains:
 * A simple multi-screen ui framework, supports inter-screen animation
 * A simple threading utility
 
+Installation and Use
+====================
+To install roxlib, use `haxelib install roxlib`.
+
 License
 =======
 The MIT License
